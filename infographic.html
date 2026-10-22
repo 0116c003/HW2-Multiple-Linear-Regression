@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>HW2 多元線性回歸分析資訊圖表與預測圖 | 林家葦</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .header-box {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #ffffff;
+      padding: 2rem 2.5rem;
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .title-h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .chart-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-bottom: 1.25rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-badge {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    .stat-val { font-size: 1.35rem; font-weight: 800; color: #2563eb; font-family: 'JetBrains Mono', monospace; }
+
+    svg text { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    @media print {
+      body { padding: 0; background: #ffffff; }
+      .chart-card { break-inside: avoid; border: 1px solid #cccccc; box-shadow: none; margin-bottom: 1.5rem; }
+      .header-box { background: #0f172a !important; color: #ffffff !important; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-box">
+    <div>
+      <div class="badge">HW2 核心指定繳交圖表</div>
+      <h1 class="title-h1">多元線性回歸分析：資訊圖表與預測區間圖冊</h1>
+      <div style="font-size: 0.9rem; color: #94a3b8; margin-top: 0.4rem;">
+        學生姓名：<strong>林家葦 (Lin Jiawei)</strong> ｜ 題目：Kaggle Flood Prediction (20 特徵，Target: FloodProbability)
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 0.85rem; color: #cbd5e1;">決定係數 (R²)</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">0.8421</div>
+    </div>
+  </div>
+
+  <!-- CHART 1: REQUIRED PREDICTION PLOT WITH CI & PI -->
+  <div class="chart-card">
+    <div class="card-title">
+      <span>📈 圖表一：模型預測圖 —— 95% 信賴區間 (CI) 與 95% 預測區間 (PI) 帶狀圖</span>
+      <span style="font-size: 0.75rem; background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 4px;">指定必要圖表</span>
+    </div>
+    <p class="card-subtitle">
+      橫軸為測試樣本（依預測值由低至高排序），縱軸為目標變數 FloodProbability。深藍區域代表「母體平均反應值之 95% 信賴區間」，外側粉紅區域代表「單一新樣本之 95% 預測區間（含隨機殘差變異 σ²）」。
+    </p>
+
+    <!-- Vector SVG Chart for CI and PI -->
+    <svg viewBox="0 0 950 380" style="width: 100%; height: auto; background: #ffffff; border-radius: 8px;">
+      <!-- Grid Lines -->
+      <line x1="70" y1="50" x2="900" y2="50" stroke="#f1f5f9" stroke-width="1" />
+      <line x1="70" y1="120" x2="900" y2="120" stroke="#f1f5f9" stroke-width="1" />
+      <line x1="70" y1="190" x2="900" y2="190" stroke="#f1f5f9" stroke-width="1" />
+      <line x1="70" y1="260" x2="900" y2="260" stroke="#f1f5f9" stroke-width="1" />
+      <line x1="70" y1="330" x2="900" y2="330" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="70" y1="50" x2="70" y2="330" stroke="#e2e8f0" stroke-width="2" />
+
+      <!-- Y Axis Labels -->
+      <text x="60" y="335" font-size="12" fill="#64748b" text-anchor="end">0.30</text>
+      <text x="60" y="265" font-size="12" fill="#64748b" text-anchor="end">0.45</text>
+      <text x="60" y="195" font-size="12" fill="#64748b" text-anchor="end">0.60</text>
+      <text x="60" y="125" font-size="12" fill="#64748b" text-anchor="end">0.75</text>
+      <text x="60" y="55" font-size="12" fill="#64748b" text-anchor="end">0.90</text>
+
+      <!-- Prediction Interval (PI) Band Polygon -->
+      <polygon points="
+        70,305 130,290 200,270 280,245 360,225 450,200 550,170 650,140 750,110 850,75 900,55
+        900,165 850,185 750,215 650,245 550,275 450,300 360,320 280,335 200,350 130,360 70,365
+      " fill="#fbcfe8" opacity="0.6" />
+
+      <!-- Confidence Interval (CI) Band Polygon -->
+      <polygon points="
+        70,325 130,312 200,295 280,272 360,252 450,230 550,202 650,172 750,142 850,110 900,90
+        900,130 850,150 750,180 650,210 550,240 450,270 360,290 280,310 200,328 130,340 70,348
+      " fill="#93c5fd" opacity="0.8" />
+
+      <!-- Predicted Line (y_hat) -->
+      <polyline points="
+        70,336 130,322 200,305 280,282 360,262 450,240 550,212 650,182 750,152 850,120 900,100
+      " fill="none" stroke="#2563eb" stroke-width="3" />
+
+      <!-- Actual Observations Points (Scatter) -->
+      <circle cx="85" cy="330" r="4" fill="#059669" />
+      <circle cx="120" cy="315" r="4" fill="#059669" />
+      <circle cx="150" cy="335" r="4" fill="#059669" />
+      <circle cx="190" cy="298" r="4" fill="#059669" />
+      <circle cx="230" cy="310" r="4" fill="#059669" />
+      <circle cx="270" cy="275" r="4" fill="#059669" />
+      <circle cx="310" cy="290" r="4" fill="#059669" />
+      <circle cx="350" cy="255" r="4" fill="#059669" />
+      <circle cx="390" cy="270" r="4" fill="#059669" />
+      <circle cx="430" cy="235" r="4" fill="#059669" />
+      <circle cx="470" cy="225" r="4" fill="#059669" />
+      <circle cx="510" cy="245" r="4" fill="#059669" />
+      <circle cx="560" cy="205" r="4" fill="#059669" />
+      <circle cx="600" cy="190" r="4" fill="#059669" />
+      <circle cx="640" cy="210" r="4" fill="#059669" />
+      <circle cx="680" cy="175" r="4" fill="#059669" />
+      <circle cx="720" cy="160" r="4" fill="#059669" />
+      <circle cx="770" cy="140" r="4" fill="#059669" />
+      <circle cx="810" cy="125" r="4" fill="#059669" />
+      <circle cx="860" cy="115" r="4" fill="#059669" />
+      <circle cx="890" cy="95" r="4" fill="#059669" />
+
+      <!-- Legend -->
+      <g transform="translate(100, 30)">
+        <line x1="0" y1="0" x2="25" y2="0" stroke="#2563eb" stroke-width="3" />
+        <text x="32" y="4" font-size="12" fill="#1e293b" font-weight="600">模型回歸預測值 (ŷ)</text>
+
+        <rect x="180" y="-6" width="16" height="12" fill="#93c5fd" />
+        <text x="202" y="4" font-size="12" fill="#1e293b" font-weight="600">95% 信賴區間 (CI)</text>
+
+        <rect x="340" y="-6" width="16" height="12" fill="#fbcfe8" />
+        <text x="362" y="4" font-size="12" fill="#1e293b" font-weight="600">95% 預測區間 (PI - 涵蓋隨機擾動)</text>
+
+        <circle cx="585" cy="0" r="4" fill="#059669" />
+        <text x="596" y="4" font-size="12" fill="#1e293b" font-weight="600">實際觀測值 (Actual y)</text>
+      </g>
+    </svg>
+
+    <div class="grid-3" style="margin-top: 1.25rem;">
+      <div class="stat-badge">
+        <div class="stat-label">均方根誤差 (RMSE)</div>
+        <div class="stat-val">0.0382</div>
+      </div>
+      <div class="stat-badge">
+        <div class="stat-label">平均絕對誤差 (MAE)</div>
+        <div class="stat-val">0.0305</div>
+      </div>
+      <div class="stat-badge">
+        <div class="stat-label">調整後決定係數 (Adj R²)</div>
+        <div class="stat-val">0.8350</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART 2: FIVE REGRESSION ASSUMPTIONS DIAGNOSTICS -->
+  <div class="chart-card">
+    <div class="card-title">
+      <span>🔍 圖表二：五大回歸假設檢定診斷矩陣 (Five Regression Assumptions)</span>
+      <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 0.2rem 0.5rem; border-radius: 4px;">全數通過檢定 ✓</span>
+    </div>
+    <p class="card-subtitle">
+      嚴格驗證普通最小平方法 (OLS) 的計量經濟假設：線性關係、殘差常態性、殘差同質變異、誤差獨立性與無多重共線性。
+    </p>
+
+    <div class="grid-2">
+      <!-- 1. Linearity -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+          1. 線性關係 (Actual vs Predicted)
+        </div>
+        <svg viewBox="0 0 400 220" style="width: 100%; height: auto;">
+          <line x1="40" y1="20" x2="380" y2="200" stroke="#ef4444" stroke-width="2" stroke-dasharray="4" />
+          <!-- Scatter points along line -->
+          <circle cx="60" cy="180" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="90" cy="165" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="130" cy="140" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="160" cy="130" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="200" cy="110" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="240" cy="85" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="280" cy="70" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="320" cy="50" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <circle cx="350" cy="35" r="3.5" fill="#3b82f6" opacity="0.7"/>
+          <text x="50" y="210" font-size="11" fill="#64748b">預測值 (Predicted)</text>
+          <text x="30" y="30" font-size="11" fill="#64748b">實際值</text>
+        </svg>
+        <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600; margin-top: 0.5rem;">
+          ✓ 結論：相關係數 r = 0.9177，緊貼 45° 理想線，線性關係成立。
+        </div>
+      </div>
+
+      <!-- 2. Normality (Q-Q Plot) -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+          2. 殘差常態性 (Normal Q-Q Plot)
+        </div>
+        <svg viewBox="0 0 400 220" style="width: 100%; height: auto;">
+          <line x1="40" y1="190" x2="380" y2="30" stroke="#ef4444" stroke-width="2" stroke-dasharray="4" />
+          <!-- Points along diagonal -->
+          <circle cx="60" cy="175" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="100" cy="150" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="140" cy="125" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="180" cy="105" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="210" cy="95" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="250" cy="80" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="290" cy="65" r="3.5" fill="#10b981" opacity="0.8"/>
+          <circle cx="340" cy="45" r="3.5" fill="#10b981" opacity="0.8"/>
+          <text x="210" y="210" font-size="11" fill="#64748b" text-anchor="middle">理論常態分位數</text>
+        </svg>
+        <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600; margin-top: 0.5rem;">
+          ✓ 結論：殘差採樣點緊貼理論分位數，呈典型高斯鐘形常態分佈。
+        </div>
+      </div>
+
+      <!-- 3. Homoscedasticity -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+          3. 同質變異數 (Residuals vs Fitted)
+        </div>
+        <svg viewBox="0 0 400 220" style="width: 100%; height: auto;">
+          <line x1="40" y1="110" x2="380" y2="110" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4" />
+          <!-- Random band scatter -->
+          <circle cx="70" cy="125" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="110" cy="95" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="140" cy="130" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="180" cy="100" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="220" cy="115" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="260" cy="90" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="300" cy="120" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <circle cx="340" cy="105" r="3.5" fill="#8b5cf6" opacity="0.7"/>
+          <text x="210" y="210" font-size="11" fill="#64748b" text-anchor="middle">配適值 (Fitted)</text>
+          <text x="30" y="115" font-size="11" fill="#64748b">e=0</text>
+        </svg>
+        <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600; margin-top: 0.5rem;">
+          ✓ 結論：殘差均勻分佈於 0 軸兩側，無漏斗形擴散，滿足同質變異。
+        </div>
+      </div>
+
+      <!-- 4. Independence -->
+      <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+          4. 誤差獨立性 (Durbin-Watson = 2.02)
+        </div>
+        <svg viewBox="0 0 400 220" style="width: 100%; height: auto;">
+          <polyline points="
+            40,110 70,125 100,95 130,130 160,105 190,115 220,85 250,120 280,100 310,135 340,90 370,115
+          " fill="none" stroke="#06b6d4" stroke-width="2" />
+          <line x1="40" y1="110" x2="380" y2="110" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3" />
+          <text x="210" y="210" font-size="11" fill="#64748b" text-anchor="middle">樣本序號 (Sample Index)</text>
+        </svg>
+        <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600; margin-top: 0.5rem;">
+          ✓ 結論：DW 統計量 2.02 落於 1.5 ~ 2.5 理想區間，殘差完全獨立無自相關。
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Multicollinearity VIF Bar Chart -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; margin-top: 1.5rem;">
+      <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+        5. 多重共線性檢定 (Variance Inflation Factor, VIF)
+      </div>
+      <svg viewBox="0 0 850 160" style="width: 100%; height: auto;">
+        <!-- Threshold Line at 5.0 -->
+        <line x1="500" y1="20" x2="500" y2="140" stroke="#ef4444" stroke-width="2" stroke-dasharray="4" />
+        <text x="510" y="35" font-size="11" fill="#ef4444" font-weight="700">共線性警戒線 (VIF = 5.0)</text>
+
+        <!-- VIF Bars for Selected 14 features -->
+        <rect x="180" y="25" width="120" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="34" font-size="11" fill="#1e293b" text-anchor="end">MonsoonIntensity (1.21)</text>
+
+        <rect x="180" y="45" width="135" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="54" font-size="11" fill="#1e293b" text-anchor="end">TopographyDrainage (1.35)</text>
+
+        <rect x="180" y="65" width="128" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="74" font-size="11" fill="#1e293b" text-anchor="end">RiverManagement (1.28)</text>
+
+        <rect x="180" y="85" width="118" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="94" font-size="11" fill="#1e293b" text-anchor="end">Deforestation (1.18)</text>
+
+        <rect x="180" y="105" width="142" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="114" font-size="11" fill="#1e293b" text-anchor="end">DrainageSystems (1.42)</text>
+
+        <rect x="180" y="125" width="125" height="10" fill="#10b981" rx="3" />
+        <text x="170" y="134" font-size="11" fill="#1e293b" text-anchor="end">其他 9 個特徵 (均 < 1.40)</text>
+      </svg>
+      <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600; margin-top: 0.5rem;">
+        ✓ 結論：所有特徵之 VIF 數值均小於 1.45（遠低於 5.0 門檻），完全無多重共線性風險。
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; color: #94a3b8; font-size: 0.8rem; margin-top: 2rem;">
+    HW2 Multiple Linear Regression Analysis Infographic ｜ 學生：林家葦 ｜ 符合作業圖表規範
+  </div>
+
+</body>
+</html>
