@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW2: 多元線性回歸分析與 CRISP-DM 流程 | 林家葦</title>
+  <meta name="description" content="林家葦的資料科學作業 HW2：以 Kaggle 公開資料集 (>13 特徵) 進行多元線性回歸分析，嚴格遵循 CRISP-DM 流程，涵蓋特徵選擇、五大假設檢定、信賴區間與預測區間。">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Local Offline Libraries with CDN Fallback -->
+  <script src="lib/chart.umd.min.js"></script>
+  <script src="lib/papaparse.min.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="brand-section">
+      <div class="brand-badge">HW2</div>
+      <div class="brand-title">
+        <h1>多元線性回歸分析 (Multiple Linear Regression)</h1>
+        <div class="student-tag">學生：林家葦 (Lin Jiawei) ｜ 遵循完整 CRISP-DM 流程</div>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Bonus 1: Problem Dropdown (+1 pt) -->
+      <div class="select-wrapper" title="加分項 1：下拉視窗呈現兩種 Kaggle Problem">
+        <select id="problemSelector" class="dataset-select" aria-label="選擇分析資料集">
+          <optgroup label="⭐ Kaggle 題目 (特徵數 > 13)">
+            <option value="flood" selected>Problem 1: 水災機率預測 (Flood Prediction, 20 特徵)</option>
+            <option value="housing">Problem 2: 伊斯坦堡房價預測 (Istanbul Real Estate, 18 特徵)</option>
+          </optgroup>
+          <optgroup label="額外測試集">
+            <option value="startups">Bonus Demo: 50 家新創公司利潤 (50 Startups)</option>
+          </optgroup>
+        </select>
+        <span class="select-icon">▼</span>
+      </div>
+
+      <span class="bonus-tag" title="加分總分 1分：下拉視窗呈現兩種 problem">加分 1: 雙 Problem</span>
+
+      <!-- Bonus 2: Custom Dataset Input Modal Trigger (+2 pt) -->
+      <button id="openCustomDatasetBtn" class="btn btn-bonus" title="加分項 2：可任意輸入 Dataset (CSV URL 或本機上傳)">
+        <span>🔗 輸入自訂 Dataset</span>
+        <span class="bonus-tag" style="padding: 0.1rem 0.4rem; background: rgba(0,0,0,0.2);">+2分</span>
+      </button>
+
+      <!-- Print / Export Report -->
+      <button id="printReportBtn" class="btn btn-outline" title="列印或匯出完整作業報告">
+        <span>📄 匯出報告</span>
+      </button>
+
+      <!-- Dark / Light Theme Toggle -->
+      <button id="themeToggleBtn" class="theme-toggle" title="切換深色/淺色主題" aria-label="切換主題">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CRISP-DM Stepper Navigation -->
+  <nav class="crisp-stepper-container" aria-label="CRISP-DM 流程步驟">
+    <div class="crisp-stepper">
+      <button class="step-tab active" data-step="1">
+        <span class="step-num">Step 1</span>
+        <span class="step-name">商業理解</span>
+      </button>
+      <button class="step-tab" data-step="2">
+        <span class="step-num">Step 2</span>
+        <span class="step-name">資料理解</span>
+      </button>
+      <button class="step-tab" data-step="3">
+        <span class="step-num">Step 3</span>
+        <span class="step-name">資料準備</span>
+      </button>
+      <button class="step-tab" data-step="4">
+        <span class="step-num">Step 4</span>
+        <span class="step-name">建模與特徵選擇</span>
+      </button>
+      <button class="step-tab" data-step="5">
+        <span class="step-num">Step 5</span>
+        <span class="step-name">模型評估與假設</span>
+      </button>
+      <button class="step-tab" data-step="6">
+        <span class="step-num">Step 6</span>
+        <span class="step-name">部署與預測區間</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+
+    <!-- =========================================================================
+         STEP 1: BUSINESS UNDERSTANDING
+         ========================================================================= -->
+    <section id="section-1" class="crisp-section active">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 1</span>
+          <h2 class="section-title">商業理解 (Business Understanding)</h2>
+          <p class="section-desc">定義分析目標、評估商業價值與連續變數預測任務，建立模型專案之驗收準則與指標架構。</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🎯 專案背景與目標 (Project Objectives)</h3>
+          </div>
+          <p id="bu-background-text" style="color: var(--text-secondary); margin-bottom: 1rem;">
+            本專案旨在以真實世界公開資料集，建立高精準度之<strong>多元線性回歸 (Multiple Linear Regression)</strong> 預測系統。透過統計學與機器學習技術，深入剖析各項特徵對目標變數的影響係數，並完成全自動化的特徵選擇與五大回歸假設檢驗。
+          </p>
+          <div class="grid-2" style="margin-top: 1rem;">
+            <div class="metric-card cyan">
+              <div class="metric-label">預測目標 (Continuous Target)</div>
+              <div id="bu-target-name" class="metric-value" style="font-size: 1.3rem;">FloodProbability</div>
+              <div id="bu-target-desc" class="metric-sub">連續數值型機率 (0.0 ~ 1.0)</div>
+            </div>
+            <div class="metric-card purple">
+              <div class="metric-label">特徵規模 (Features Count)</div>
+              <div id="bu-feature-count" class="metric-value">20</div>
+              <div class="metric-sub">嚴格符合作業規範 (>13 特徵)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📊 成功衡量準則與驗收指標 (Success Criteria)</h3>
+          </div>
+          <ul style="color: var(--text-secondary); margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.95rem;">
+            <li><strong>決定係數 (R-Squared)：</strong>模型需達成 $R^2 \ge 0.75$，表示能有效解釋目標變數的大部分變異。</li>
+            <li><strong>特徵選擇 (Feature Selection)：</strong>透過演算法篩選出最具代表性特徵，降低模型複雜度並維持預測準確度。</li>
+            <li><strong>五大回歸假設檢定：</strong>嚴格檢驗線性、殘差常態性、同質變異數、獨立性與共線性 (VIF < 5)。</li>
+            <li><strong>預測不確定性量化：</strong>預測輸出需具備 <strong>95% 信賴區間 (Confidence Interval)</strong> 與 <strong>95% 預測區間 (Prediction Interval)</strong>。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CRISP-DM Workflow Diagram Banner -->
+      <div class="card" style="margin-top: 1.5rem; background: var(--gradient-card);">
+        <div class="card-header">
+          <h3 class="card-title">🔄 跨產業資料探勘標準流程 (CRISP-DM Cycle)</h3>
+          <span class="bonus-tag" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border-color: var(--accent-indigo);">六大階段貫通</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem; text-align: center;">
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-indigo); font-weight: 700; font-size: 0.8rem;">01. 理解</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">商業理解</div>
+          </div>
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-cyan); font-weight: 700; font-size: 0.8rem;">02. 理解</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">資料理解</div>
+          </div>
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-purple); font-weight: 700; font-size: 0.8rem;">03. 準備</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">資料準備</div>
+          </div>
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-emerald); font-weight: 700; font-size: 0.8rem;">04. 建模</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">模型建立</div>
+          </div>
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-amber); font-weight: 700; font-size: 0.8rem;">05. 評估</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">評估與假設</div>
+          </div>
+          <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+            <div style="color: var(--accent-rose); font-weight: 700; font-size: 0.8rem;">06. 部署</div>
+            <div style="font-size: 0.85rem; font-weight: 600;">部署與預測</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STEP 2: DATA UNDERSTANDING
+         ========================================================================= -->
+    <section id="section-2" class="crisp-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 2</span>
+          <h2 class="section-title">資料理解 (Data Understanding)</h2>
+          <p class="section-desc">探索資料結構、樣本分佈、特徵維度、缺失值狀況與特徵間之皮爾森相關係數矩陣。</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a id="kaggleDatasetLink" href="https://www.kaggle.com/competitions/playground-series-s4e5" target="_blank" class="btn btn-outline" style="font-size: 0.82rem;">
+            🔗 前往 Kaggle 資料集頁面
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Cards -->
+      <div class="grid-4" style="margin-bottom: 1.5rem;">
+        <div class="metric-card cyan">
+          <div class="metric-label">總樣本數 (Rows)</div>
+          <div id="du-sample-count" class="metric-value">320</div>
+          <div class="metric-sub">完全無缺失紀錄</div>
+        </div>
+        <div class="metric-card purple">
+          <div class="metric-label">特徵數量 (Features)</div>
+          <div id="du-feature-count-card" class="metric-value">20</div>
+          <div class="metric-sub">大於 13 規範要求 (14~39 區間)</div>
+        </div>
+        <div class="metric-card emerald">
+          <div class="metric-label">預測目標變數 (Target)</div>
+          <div id="du-target-card" class="metric-value" style="font-size: 1.3rem;">FloodProbability</div>
+          <div class="metric-sub">連續型實數值</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">缺失值總數 (Nulls)</div>
+          <div id="du-null-count" class="metric-value">0</div>
+          <div class="metric-sub">資料完整度 100%</div>
+        </div>
+      </div>
+
+      <!-- Data Table Preview -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <h3 class="card-title">📋 資料集前瞻預覽 (Dataset Preview - Top 10 Samples)</h3>
+          <span id="dataLoadedBadge" class="target-badge">已載入 320 筆資料</span>
+        </div>
+        <div class="table-container">
+          <table id="previewTable" class="data-table">
+            <thead>
+              <tr id="previewTableHead"></tr>
+            </thead>
+            <tbody id="previewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statistics & Correlation Grid -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📈 敘述性統計摘要 (Summary Statistics)</h3>
+          </div>
+          <div class="table-container" style="max-height: 380px;">
+            <table class="data-table" id="statsTable">
+              <thead>
+                <tr>
+                  <th>特徵 (Feature)</th>
+                  <th>平均值 (Mean)</th>
+                  <th>標準差 (Std)</th>
+                  <th>最小值 (Min)</th>
+                  <th>中位數 (Median)</th>
+                  <th>最大值 (Max)</th>
+                </tr>
+              </thead>
+              <tbody id="statsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🔥 特徵與目標變數相關係數 (Correlation with Target)</h3>
+          </div>
+          <div class="chart-wrapper" style="height: 320px;">
+            <canvas id="targetCorrChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STEP 3: DATA PREPARATION
+         ========================================================================= -->
+    <section id="section-3" class="crisp-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 3</span>
+          <h2 class="section-title">資料準備 (Data Preparation)</h2>
+          <p class="section-desc">包含資料清理、缺失值處理、Z-Score 特徵標準化縮放，以及 80% 訓練集與 20% 測試集切割。</p>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom: 1.5rem;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🧹 資料清理與缺失填補</h3>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            檢查空值並套用中位數填補 (Median Imputation)，確保模型不受極端缺失干擾。
+          </p>
+          <div class="metric-card emerald">
+            <div class="metric-label">處理後缺失率</div>
+            <div class="metric-value">0.00%</div>
+            <div class="metric-sub">完全清洗完成</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⚖️ 特徵標準化 (Z-Score)</h3>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            使用標準差縮放：$z = \frac{x - \mu}{\sigma}$，消除量綱差異，加速回歸收斂與正則化懲罰公平性。
+          </p>
+          <div class="metric-card cyan">
+            <div class="metric-label">縮放後中心與變異</div>
+            <div class="metric-value">μ=0, σ=1</div>
+            <div class="metric-sub">所有數值特徵標準化</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">✂️ 資料集切割 (Train/Test Split)</h3>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            設定 80% 資料為訓練集進行建模，20% 作為無污染的測試集進行客觀評估。
+          </p>
+          <div style="display: flex; gap: 0.75rem;">
+            <div class="metric-card purple" style="flex: 1;">
+              <div class="metric-label">訓練集 (80%)</div>
+              <div id="prep-train-count" class="metric-value">256</div>
+            </div>
+            <div class="metric-card amber" style="flex: 1;">
+              <div class="metric-label">測試集 (20%)</div>
+              <div id="prep-test-count" class="metric-value">64</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Preprocessing Visualization -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📊 標準化前後分佈比對範例 (Feature Scaling Distribution)</h3>
+        </div>
+        <div class="chart-wrapper" style="height: 280px;">
+          <canvas id="scalerChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STEP 4: MODELING & FEATURE SELECTION
+         ========================================================================= -->
+    <section id="section-4" class="crisp-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 4</span>
+          <h2 class="section-title">模型建立與特徵選擇 (Modeling & Feature Selection)</h2>
+          <p class="section-desc">結合特徵篩選策略 (SelectKBest, RFE, Lasso) 與多元線性回歸演算法，剖析回歸係數與顯著性檢定。</p>
+        </div>
+      </div>
+
+      <!-- Feature Selection Configuration Bar -->
+      <div class="card" style="margin-bottom: 1.5rem; background: var(--gradient-card);">
+        <div class="card-header">
+          <h3 class="card-title">⚙️ 特徵選擇策略控制器 (Feature Selection Controls)</h3>
+          <span class="bonus-tag" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16,185,129,0.4);">
+            必要項目：特徵選擇
+          </span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; align-items: flex-end;">
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">特徵選擇演算法：</label>
+            <select id="fsMethodSelect" class="dataset-select" style="width: 100%;">
+              <option value="selectkbest" selected>SelectKBest (F-Score / 相關係數排序)</option>
+              <option value="rfe">RFE (遞迴特徵消除 - Recursive Feature Elimination)</option>
+              <option value="lasso">Lasso (L1 正則化稀疏篩選)</option>
+              <option value="all">全特徵基準 (All Features Baseline)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">保留特徵數量 (K)：</label>
+            <select id="fsKSelect" class="dataset-select" style="width: 100%;">
+              <option value="14" selected>14 個特徵 (符合作業 > 13 要求)</option>
+              <option value="16">16 個特徵</option>
+              <option value="18">18 個特徵</option>
+              <option value="all">保留全部特徵</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">回歸演算法：</label>
+            <select id="modelAlgoSelect" class="dataset-select" style="width: 100%;">
+              <option value="ols" selected>OLS 多元線性回歸 (Ordinary Least Squares)</option>
+              <option value="ridge">Ridge 脊回歸 (L2 Regularization, λ=1.0)</option>
+              <option value="lasso">Lasso 回歸 (L1 Regularization, λ=0.05)</option>
+            </select>
+          </div>
+          <div>
+            <button id="trainModelBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+              🚀 執行特徵篩選與訓練
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.25rem;">
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">當前選用之特徵清單：</div>
+          <div id="featurePillsContainer" class="feature-pill-list"></div>
+        </div>
+      </div>
+
+      <!-- Regression Formula & Coefficient Table -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <h3 class="card-title">📐 回歸數學模型與方程 (Fitted Model Equation)</h3>
+        </div>
+        <div id="modelFormulaBox" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-cyan); overflow-x: auto; white-space: nowrap;">
+          載入中...
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📑 係數分析與顯著性統計表 (Coefficients & Significance)</h3>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="coefTable">
+            <thead>
+              <tr>
+                <th>特徵 (Feature)</th>
+                <th>係數 (β)</th>
+                <th>標準誤 (Std Error)</th>
+                <th>t-統計量 (t-stat)</th>
+                <th>p-值 (p-value)</th>
+                <th>顯著性標記</th>
+                <th>95% 係數信賴區間</th>
+              </tr>
+            </thead>
+            <tbody id="coefTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STEP 5: EVALUATION & 5 ASSUMPTIONS
+         ========================================================================= -->
+    <section id="section-5" class="crisp-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 5</span>
+          <h2 class="section-title">模型評估與五大假設檢定 (Evaluation & 5 Assumptions)</h2>
+          <p class="section-desc">客觀量化回歸評估指標 (MAE, MSE, RMSE, R², Adjusted R²)，並完整檢驗五大計量經濟回歸假設。</p>
+        </div>
+      </div>
+
+      <!-- Metric Dashboard Grid -->
+      <div class="grid-4" style="margin-bottom: 1.5rem;">
+        <div class="metric-card emerald">
+          <div class="metric-label">決定係數 (R²) - Test</div>
+          <div id="eval-r2" class="metric-value">0.8421</div>
+          <div class="metric-sub">高度解釋力 (High Fit)</div>
+        </div>
+        <div class="metric-card cyan">
+          <div class="metric-label">調整後 R² (Adjusted R²)</div>
+          <div id="eval-adj-r2" class="metric-value">0.8350</div>
+          <div class="metric-sub">已懲罰多餘特徵項</div>
+        </div>
+        <div class="metric-card purple">
+          <div class="metric-label">均方根誤差 (RMSE)</div>
+          <div id="eval-rmse" class="metric-value">0.0382</div>
+          <div class="metric-sub">與目標變數同單位</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">平均絕對誤差 (MAE)</div>
+          <div id="eval-mae" class="metric-value">0.0305</div>
+          <div class="metric-sub">平均預測誤差偏移量</div>
+        </div>
+      </div>
+
+      <!-- Five Regression Assumptions Diagnostics -->
+      <div class="section-header" style="margin-top: 2rem; margin-bottom: 1rem;">
+        <div class="section-title-wrap">
+          <h3 class="section-title" style="font-size: 1.35rem;">🔍 五大回歸假設檢定專區 (5 Regression Assumptions)</h3>
+          <p class="section-desc">針對線性回歸之五大核心理論假設逐一進行統計圖形診斷與指標檢定。</p>
+        </div>
+      </div>
+
+      <div class="assumptions-grid">
+        <!-- Assumption 1: Linearity -->
+        <div class="assumption-card">
+          <div class="assumption-header">
+            <h4 style="font-weight: 700;">1. 線性關係 (Linearity)</h4>
+            <span class="status-badge pass">檢定通過 ✓</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartLinearity"></canvas>
+          </div>
+          <div class="assumption-diag-text">
+            <strong>診斷依據：</strong>實際值 vs 預測值緊密圍繞 45 度理想對角線分布，殘差均值趨近於 0，無非線性彎曲趨勢。
+          </div>
+        </div>
+
+        <!-- Assumption 2: Normality -->
+        <div class="assumption-card">
+          <div class="assumption-header">
+            <h4 style="font-weight: 700;">2. 殘差常態性 (Normality)</h4>
+            <span class="status-badge pass">檢定通過 ✓</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartNormality"></canvas>
+          </div>
+          <div class="assumption-diag-text">
+            <strong>診斷依據：</strong>Q-Q Plot (分位數對分位數圖) 顯示殘差採樣點緊貼理論常態分佈紅線，呈現標準高斯分佈鐘形。
+          </div>
+        </div>
+
+        <!-- Assumption 3: Homoscedasticity -->
+        <div class="assumption-card">
+          <div class="assumption-header">
+            <h4 style="font-weight: 700;">3. 同質變異數 (Homoscedasticity)</h4>
+            <span class="status-badge pass">檢定通過 ✓</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartHomoscedasticity"></canvas>
+          </div>
+          <div class="assumption-diag-text">
+            <strong>診斷依據：</strong>殘差 vs 配適值 (Residuals vs Fitted) 呈現均勻帶狀隨機散布，無喇叭口或漏斗形變異擴大現象。
+          </div>
+        </div>
+
+        <!-- Assumption 4: Independence -->
+        <div class="assumption-card">
+          <div class="assumption-header">
+            <h4 style="font-weight: 700;">4. 誤差獨立性 (Independence)</h4>
+            <span id="dwStatusBadge" class="status-badge pass">DW = 2.02 (獨立)</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartIndependence"></canvas>
+          </div>
+          <div class="assumption-diag-text">
+            <strong>診斷依據：</strong>Durbin-Watson 統計量 $d = \frac{\sum (e_t - e_{t-1})^2}{\sum e_t^2}$ 落於理想無自相關區間 (1.5 ~ 2.5)。
+          </div>
+        </div>
+
+        <!-- Assumption 5: Multicollinearity (VIF) -->
+        <div class="assumption-card" style="grid-column: 1 / -1;">
+          <div class="assumption-header">
+            <h4 style="font-weight: 700;">5. 無嚴重共線性檢定 (Multicollinearity - VIF)</h4>
+            <span id="vifStatusBadge" class="status-badge pass">所有特徵 VIF < 5 (優良)</span>
+          </div>
+          <div class="chart-wrapper" style="height: 280px;">
+            <canvas id="chartVIF"></canvas>
+          </div>
+          <div class="assumption-diag-text">
+            <strong>診斷依據：</strong>計算各特徵之變異數膨脹因子 $VIF_j = \frac{1}{1 - R_j^2}$。所有納入之特徵 VIF 皆小於 5，無多重共線性風險。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STEP 6: DEPLOYMENT & INTERACTIVE PREDICTION INTERVALS
+         ========================================================================= -->
+    <section id="section-6" class="crisp-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-badge">CRISP-DM Phase 6</span>
+          <h2 class="section-title">模型部署與互動預測 (Deployment & Prediction Intervals)</h2>
+          <p class="section-desc">即時輸入樣本參數，動態計算單點預測值，並視覺化呈現 95% 信賴區間 (CI) 與 95% 預測區間 (PI)。</p>
+        </div>
+      </div>
+
+      <div class="prediction-panel">
+        <!-- Interactive Inputs Column -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🎛️ 特徵參數即時調整面板 (Feature Sliders)</h3>
+            <button id="resetSlidersBtn" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">重設為平均值</button>
+          </div>
+          <div id="slidersContainer" style="max-height: 480px; overflow-y: auto; padding-right: 0.5rem;">
+            <!-- Dynamically generated sliders for selected features -->
+          </div>
+        </div>
+
+        <!-- Prediction Result & Visual Interval Bar Column -->
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div class="card-header">
+              <h3 class="card-title">🎯 預測成果與不確定性區間 (Prediction & Intervals)</h3>
+              <span class="target-badge">α = 0.05 (95% 水準)</span>
+            </div>
+
+            <div class="interval-display-box">
+              <div style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">
+                模型單點預測估計值 (Point Prediction)
+              </div>
+              <div id="predValueDisplay" class="pred-result-val">0.5342</div>
+              <div id="predTargetDesc" style="font-size: 0.85rem; color: var(--accent-cyan);">
+                目標變數：FloodProbability
+              </div>
+
+              <!-- Numerical Interval Boxes -->
+              <div class="grid-2" style="margin-top: 1.5rem;">
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md); padding: 0.85rem;">
+                  <div style="color: #60a5fa; font-size: 0.8rem; font-weight: 700;">95% 信賴區間 (CI)</div>
+                  <div id="ciValueText" style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">
+                    [0.5218, 0.5466]
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">針對母體平均期望值 (Mean Response)</div>
+                </div>
+
+                <div style="background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: var(--radius-md); padding: 0.85rem;">
+                  <div style="color: #f472b6; font-size: 0.8rem; font-weight: 700;">95% 預測區間 (PI)</div>
+                  <div id="piValueText" style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">
+                    [0.4582, 0.6102]
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">針對單一新樣本個體 (Individual Instance)</div>
+                </div>
+              </div>
+
+              <!-- Visual Interval Track -->
+              <div class="intervals-bar-container">
+                <div class="interval-legend">
+                  <div class="legend-item"><span class="legend-dot ci"></span> 95% 信賴區間 (CI)</div>
+                  <div class="legend-item"><span class="legend-dot pi"></span> 95% 預測區間 (PI - 涵蓋隨機誤差)</div>
+                </div>
+                
+                <div class="visual-interval-track" id="visualIntervalTrack">
+                  <!-- Dynamic PI Bar -->
+                  <div id="visualPIBar" class="pi-range-bar" style="left: 20%; width: 60%;"></div>
+                  <!-- Dynamic CI Bar -->
+                  <div id="visualCIBar" class="ci-range-bar" style="left: 40%; width: 20%;"></div>
+                  <!-- Dynamic Point Marker -->
+                  <div id="visualPointMarker" class="point-pred-marker" style="left: 50%;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+                  <span id="visualMinScale">Min</span>
+                  <span>中心單點預測 (ŷ)</span>
+                  <span id="visualMaxScale">Max</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mathematical Formula Reference Box -->
+          <div class="interval-math-box" style="margin-top: 1.25rem;">
+            <strong>📐 統計計量區間數學原理：</strong>
+            <p style="margin-top: 0.3rem;">
+              • <strong>信賴區間 (Confidence Interval)：</strong>
+              <code>ŷ ± t(α/2, n-p) · s · √(x₀ᵀ (XᵀX)⁻¹ x₀)</code> —— 預測該特徵條件下的「母體平均反應值」。
+            </p>
+            <p style="margin-top: 0.3rem;">
+              • <strong>預測區間 (Prediction Interval)：</strong>
+              <code>ŷ ± t(α/2, n-p) · s · √(1 + x₀ᵀ (XᵀX)⁻¹ x₀)</code> —— 因須加上新個體本身之隨機擾動項 (σ²)，故寬度必然大於信賴區間。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Actual vs Prediction with Intervals Chart -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3 class="card-title">📈 測試集預測分佈與信賴/預測區間帶 (Prediction Bands on Test Set)</h3>
+        </div>
+        <div class="chart-wrapper" style="height: 320px;">
+          <canvas id="predictionBandsChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL: CUSTOM DATASET INPUT (Bonus 2: +2 pt)
+       ========================================================================= -->
+  <div id="customDatasetModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.25rem; font-weight: 800;">🔗 加分功能：自訂 Dataset 輸入 (+2分)</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
+            可輸入任意公開 CSV 網址（如 50_Startups）或上傳本機 CSV 檔案
+          </p>
+        </div>
+        <button id="closeModalBtn" class="modal-close">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">方式一：輸入 CSV 網路連結 (URL)</label>
+        <input id="customUrlInput" type="url" class="input-field" 
+               placeholder="例如: https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv"
+               value="https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv">
+        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+          <button id="loadUrlBtn" class="btn btn-primary" style="font-size: 0.85rem;">
+            🌐 載入並解析 URL
+          </button>
+          <button id="fill50StartupsBtn" class="btn btn-outline" style="font-size: 0.85rem;">
+            填入 50_Startups 範例
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">方式二：上傳本機 CSV 檔案</label>
+        <div id="dropzone" class="file-dropzone">
+          <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+          <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">📁</div>
+          <div style="font-weight: 600;">點擊或拖曳 CSV 檔案至此處</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">支援任何具有數值特徵之 CSV 檔案</div>
+        </div>
+      </div>
+
+      <!-- Column Selector (Visible after CSV loaded) -->
+      <div id="customColumnSection" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem;">選擇目標變數 (Target Variable)：</h4>
+        <select id="customTargetSelect" class="dataset-select" style="width: 100%; margin-bottom: 1rem;"></select>
+        <button id="confirmCustomDatasetBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+          ⚡ 確認並套用至 CRISP-DM 流程
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
